@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { RepositoryCard } from '../../components/RepositoryCard'
 import { useDebounce } from '../../hooks/debounce'
-import { useSearchUsersQuery } from '../../store/github/github.api'
+import { useSearchUsersQuery, useLazyGetUserReposQuery } from '../../store/github/github.api'
 
 export const HomePage = () => {
   const [search, setSearch] = useState('')
@@ -12,6 +13,14 @@ export const HomePage = () => {
     skip: debounced.length < 3,
     refetchOnFocus: true
   })
+
+  const [fetchRepos, { isError: isFetchReposError, isLoading: isReposLoading, data: repos }] =
+    useLazyGetUserReposQuery()
+
+  function onRowClick(userName: string) {
+    fetchRepos(userName)
+    setDropDown(false)
+  }
 
   useEffect(() => {
     setDropDown(debounced.length >= 3 && data?.length! > 0)
@@ -35,12 +44,20 @@ export const HomePage = () => {
               <li
                 key={user.id}
                 className="py-2 px-4 hover:bg-gray-500 hover:text-white transition-colors cursor-pointer"
+                onClick={() => onRowClick(user.login)}
               >
                 {user.login}
               </li>
             ))}
           </ul>
         )}
+
+        <div className="container">
+          {isReposLoading && <p className="text-center">Repos are loading</p>}
+          {repos?.map(repo => (
+            <RepositoryCard repo={repo} key={repo.id} />
+          ))}
+        </div>
       </div>
     </div>
   )
